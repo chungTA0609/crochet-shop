@@ -3,12 +3,14 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, Search, Heart, User, Menu } from "lucide-react"
+import { ShoppingCart, Search, Heart, User, Menu, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useCart } from "@/contexts/cart-context"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { cartCount, wishlistCount } = useCart()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
@@ -39,6 +41,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/contact" className="text-lg font-medium">
                   Liên hệ
+                </Link>
+                <Link href="/orders" className="text-lg font-medium">
+                  Đơn hàng
                 </Link>
               </nav>
             </SheetContent>
@@ -74,11 +79,30 @@ export function Navbar() {
           <Button variant="ghost" size="icon" aria-label="Search">
             <Search className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Wishlist">
-            <Heart className="h-5 w-5" />
+          <Button variant="ghost" size="icon" aria-label="Wishlist" asChild>
+            <Link href="/wishlist" className="relative">
+              <Heart className="h-5 w-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {wishlistCount > 9 ? "9+" : wishlistCount}
+                </span>
+              )}
+            </Link>
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Cart">
-            <ShoppingCart className="h-5 w-5" />
+          <Button variant="ghost" size="icon" aria-label="Cart" asChild>
+            <Link href="/cart" className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Orders" asChild className="hidden sm:flex">
+            <Link href="/orders">
+              <Package className="h-5 w-5" />
+            </Link>
           </Button>
           <Button variant="ghost" size="icon" aria-label="Account" className="hidden sm:flex">
             <User className="h-5 w-5" />

@@ -4,37 +4,17 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-
-const slides = [
-  {
-    id: 1,
-    title: "VÌ SAO CÓ NHÂN LOẠI",
-    image: "/images/hero-1.jpg",
-    buttonText: "Xem thêm",
-  },
-  {
-    id: 2,
-    title: "HANDMADE WITH LOVE",
-    image: "/images/hero-2.jpg",
-    buttonText: "Mua ngay",
-  },
-  {
-    id: 3,
-    title: "QUÀ TẶNG ĐẶC BIỆT",
-    image: "/images/hero-3.jpg",
-    buttonText: "Khám phá",
-  },
-]
+import { heroSlides } from "@/lib/constants"
 
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1))
+    setCurrentSlide((prev) => (prev === heroSlides.length - 1 ? 0 : prev + 1))
   }
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
+    setCurrentSlide((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1))
   }
 
   useEffect(() => {
@@ -46,7 +26,7 @@ export function HeroSlider() {
 
   return (
     <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden">
-      {slides.map((slide, index) => (
+      {heroSlides.map((slide, index) => (
         <div
           key={slide.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -87,7 +67,7 @@ export function HeroSlider() {
       </Button>
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, index) => (
+        {heroSlides.map((_, index) => (
           <button
             key={index}
             className={`w-2 h-2 rounded-full transition-all ${index === currentSlide ? "bg-white w-4" : "bg-white/50"}`}

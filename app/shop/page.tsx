@@ -1,19 +1,49 @@
+"use client"
+
+import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
-import { Button } from "@/components/ui/button"
+import { Breadcrumb } from "@/components/breadcrumb"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Search, SlidersHorizontal } from "lucide-react"
+import { products, productCategories, colors } from "@/lib/constants"
+import { Pagination } from "@/components/pagination"
 
 export default function ShopPage() {
+  const breadcrumbItems = [{ label: "Trang chủ", href: "/" }, { label: "Cửa hàng" }]
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [filteredProducts, setFilteredProducts] = useState(products)
+  const productsPerPage = 6
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage)
+
+  // Get current products
+  const indexOfLastProduct = currentPage * productsPerPage
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct)
+
+  // Change page
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto p-8">
+          {/* Breadcrumb */}
+          <div className="mb-6">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
+
           <h1 className="text-3xl font-bold mb-8 text-center">Cửa Hàng</h1>
 
           <div className="flex flex-col md:flex-row gap-8">
@@ -29,7 +59,7 @@ export default function ShopPage() {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Danh mục</h4>
                     <div className="space-y-2">
-                      {categories.map((category) => (
+                      {productCategories.map((category) => (
                         <div key={category.id} className="flex items-center space-x-2">
                           <Checkbox id={`category-${category.id}`} />
                           <Label htmlFor={`category-${category.id}`} className="text-sm">
@@ -88,29 +118,14 @@ export default function ShopPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
+                {currentProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
 
-              <div className="flex justify-center mt-12">
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" disabled>
-                    &lt;
-                  </Button>
-                  <Button variant="default" size="icon" className="bg-pink-500 hover:bg-pink-600">
-                    1
-                  </Button>
-                  <Button variant="outline" size="icon">
-                    2
-                  </Button>
-                  <Button variant="outline" size="icon">
-                    3
-                  </Button>
-                  <Button variant="outline" size="icon">
-                    &gt;
-                  </Button>
-                </div>
+              {/* Pagination */}
+              <div className="mt-12">
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
               </div>
             </div>
           </div>
@@ -120,89 +135,3 @@ export default function ShopPage() {
     </div>
   )
 }
-
-const categories = [
-  { id: 1, name: "Móc khóa" },
-  { id: 2, name: "Thú bông" },
-  { id: 3, name: "Hoa" },
-  { id: 4, name: "Quà tặng" },
-  { id: 5, name: "Phụ kiện" },
-]
-
-const colors = [
-  { id: 1, name: "Đỏ", hex: "#ef4444" },
-  { id: 2, name: "Cam", hex: "#f97316" },
-  { id: 3, name: "Vàng", hex: "#eab308" },
-  { id: 4, name: "Xanh lá", hex: "#22c55e" },
-  { id: 5, name: "Xanh dương", hex: "#3b82f6" },
-  { id: 6, name: "Tím", hex: "#a855f7" },
-  { id: 7, name: "Hồng", hex: "#ec4899" },
-  { id: 8, name: "Trắng", hex: "#ffffff" },
-  { id: 9, name: "Đen", hex: "#000000" },
-]
-
-const products = [
-  {
-    id: 1,
-    name: "Móc khóa hình gấu nhỏ xinh",
-    price: 250000,
-    image: "/images/product-1.jpg",
-    category: "Móc khóa",
-  },
-  {
-    id: 2,
-    name: "Móc khóa hình thỏ",
-    price: 250000,
-    image: "/images/product-2.jpg",
-    category: "Móc khóa",
-  },
-  {
-    id: 3,
-    name: "Thú bông chuột nhỏ",
-    price: 350000,
-    image: "/images/product-3.jpg",
-    category: "Thú bông",
-  },
-  {
-    id: 4,
-    name: "Móc khóa hình mèo",
-    price: 250000,
-    image: "/images/product-4.jpg",
-    category: "Móc khóa",
-  },
-  {
-    id: 5,
-    name: "Thú bông vịt vàng",
-    price: 350000,
-    image: "/images/product-5.jpg",
-    category: "Thú bông",
-  },
-  {
-    id: 6,
-    name: "Hộp quà nhỏ xinh",
-    price: 200000,
-    image: "/images/product-6.jpg",
-    category: "Quà tặng",
-  },
-  {
-    id: 7,
-    name: "Thú bông cá xanh",
-    price: 350000,
-    image: "/images/product-7.jpg",
-    category: "Thú bông",
-  },
-  {
-    id: 8,
-    name: "Hoa hồng len đỏ",
-    price: 150000,
-    image: "/images/product-8.jpg",
-    category: "Hoa",
-  },
-  {
-    id: 9,
-    name: "Móc khóa hình gấu trúc",
-    price: 250000,
-    image: "/images/product-1.jpg",
-    category: "Móc khóa",
-  },
-]

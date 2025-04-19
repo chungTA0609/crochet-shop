@@ -3,13 +3,16 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CartProvider } from "@/contexts/cart-context"
+import { CheckoutProvider } from "@/contexts/checkout-context"
+import { OrderProvider } from "@/contexts/order-context"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Tiểu Phương Crochet - Handmade Crochet Shop",
   description: "Shop bán đồ móc len thủ công, chart móc len và phụ kiện handmade",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -21,12 +24,16 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
+          <CartProvider>
+            <CheckoutProvider>
+              <OrderProvider>
+                {children}
+                <Toaster />
+              </OrderProvider>
+            </CheckoutProvider>
+          </CartProvider>
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'

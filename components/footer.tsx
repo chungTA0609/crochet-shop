@@ -5,7 +5,7 @@ import { Facebook, Instagram, Youtube, Mail, Phone } from "lucide-react"
 export function Footer() {
   return (
     <footer className="bg-white border-t">
-      <div className="container mx-auto py-12">
+      <div className="container mx-auto p-12">
         <div className="flex flex-col items-center mb-8">
           <Image src="/images/logo.png" alt="Tiểu Phương Crochet" width={80} height={80} className="rounded-full" />
         </div>
