@@ -75,13 +75,13 @@ export default function ChartPage() {
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
-        <div className="relative h-[300px] w-full">
+        {/* <div className="relative h-[300px] w-full">
           <Image src="/images/chart-hero.jpg" alt="Chart Mẫu Phí" fill className="object-cover" priority />
           <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Chart Mẫu Phí</h1>
             <p className="text-sm md:text-base">Hướng dẫn - Chart Móc Len Phí</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="container mx-auto p-8">
           {/* Breadcrumb */}
@@ -159,9 +159,8 @@ export default function ChartPage() {
               <Badge
                 key={category.id}
                 variant="outline"
-                className={`rounded-full px-4 py-1 cursor-pointer hover:bg-pink-50 ${
-                  selectedCategory === category.name ? "bg-pink-100 border-pink-500 text-pink-500" : ""
-                }`}
+                className={`rounded-full px-4 py-1 cursor-pointer hover:bg-pink-50 ${selectedCategory === category.name ? "bg-pink-100 border-pink-500 text-pink-500" : ""
+                  }`}
                 onClick={() => handleCategoryChange(category.name)}
               >
                 {category.name}
