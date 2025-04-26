@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PatternCard } from "@/components/pattern-card"
 import { homePagePatterns } from "@/lib/constants"
-import { Pagination } from "@/components/ui/pagination"
+import { Pagination } from "../pagination"
 
 export function PatternSection() {
   const [currentPage, setCurrentPage] = useState(1)

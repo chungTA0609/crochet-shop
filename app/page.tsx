@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSlider } from "@/components/hero-slider"
 import { SocialLinks } from "@/components/social-links"

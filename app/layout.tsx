@@ -10,6 +10,7 @@ import { OrderProvider } from "@/contexts/order-context"
 import { AdminProvider } from "@/contexts/admin-context"
 import { ReviewProvider } from "@/contexts/review-context"
 import { ApiProvider } from "@/contexts/api-context"
+import { AuthProvider } from "@/contexts/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,18 +29,20 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <ApiProvider>
-            <CartProvider>
-              <CheckoutProvider>
-                <OrderProvider>
-                  <AdminProvider>
-                    <ReviewProvider>
-                      {children}
-                      <Toaster />
-                    </ReviewProvider>
-                  </AdminProvider>
-                </OrderProvider>
-              </CheckoutProvider>
-            </CartProvider>
+            <AuthProvider>
+              <CartProvider>
+                <CheckoutProvider>
+                  <OrderProvider>
+                    <AdminProvider>
+                      <ReviewProvider>
+                        {children}
+                        <Toaster />
+                      </ReviewProvider>
+                    </AdminProvider>
+                  </OrderProvider>
+                </CheckoutProvider>
+              </CartProvider>
+            </AuthProvider>
           </ApiProvider>
         </ThemeProvider>
       </body>

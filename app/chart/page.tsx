@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import Image from "next/image"
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { Search, Filter, Grid3X3, List } from "lucide-react"
 import { patterns, patternCategories } from "@/lib/constants"
 import { PatternCardExtended } from "@/components/pattern-card-extended"
 import { PatternListItem } from "@/components/pattern-list-item"
-import { Pagination } from "@/components/ui/pagination"
+import { Pagination } from "@/components/pagination"
 
 export default function ChartPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")

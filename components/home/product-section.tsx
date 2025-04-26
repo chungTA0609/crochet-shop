@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/product-card"
 import { products } from "@/lib/constants"
-import { Pagination } from "@/components/ui/pagination"
+import { Pagination } from "@/components/pagination"
 
 export function ProductSection() {
   const [currentPage, setCurrentPage] = useState(1)
