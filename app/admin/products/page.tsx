@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useAdmin } from "@/contexts/admin-context"
+import api from "@/lib/axios"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,20 +25,68 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import { Search, Plus, MoreHorizontal, Edit, Trash, Eye } from "lucide-react"
+import { Pagination } from "@/components/pagination"
+import { Search, Plus, MoreHorizontal, Edit, Trash, Eye, Loader2 } from "lucide-react"
 
 export default function ProductsPage() {
-    const { products, deleteProduct } = useAdmin()
+    const [products, setProducts] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
     const [searchTerm, setSearchTerm] = useState("")
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [productToDelete, setProductToDelete] = useState<number | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
-    // Filter products based on search term
-    const filteredProducts = products.filter(
-        (product) =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.category.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
+    const pageSize = 10 // Number of items per page
+
+    // Fetch products from API
+    const fetchProducts = async (page = currentPage) => {
+        try {
+            setLoading(true)
+            setError("")
+
+            const response = await api.post("/api/products/get-list", {
+                keyword: searchTerm,
+                sortBy: "",
+                sortDirection: "",
+                page: page,
+                size: pageSize,
+            })
+
+            setProducts(response.data.content || [])
+            setTotalItems(response.data.totalElements || 0)
+            setTotalPages(response.data.totalPages || 1)
+            setCurrentPage(page)
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Failed to fetch products")
+            console.error("Error fetching products:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Handle page change
+    const handlePageChange = (page: number) => {
+        fetchProducts(page)
+    }
+
+    // Initial fetch
+    useEffect(() => {
+        fetchProducts(1)
+    }, [])
+
+    // Fetch when search term changes
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchProducts(1) // Reset to first page on search
+        }, 500) // Debounce search
+
+        return () => clearTimeout(timer)
+    }, [searchTerm])
 
     // Handle product deletion
     const handleDeleteClick = (productId: number) => {
@@ -46,23 +94,40 @@ export default function ProductsPage() {
         setDeleteDialogOpen(true)
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (productToDelete !== null) {
-            const success = deleteProduct(productToDelete)
-            if (success) {
+            try {
+                setIsDeleting(true)
+
+                // Call API to delete product
+                await api.delete(`/api/products/${productToDelete}`)
+
+                // Remove from local state
+                setProducts(products.filter((product) => product.id !== productToDelete))
+
+                // Refresh the current page if it's now empty (except for the first page)
+                if (products.length === 1 && currentPage > 1) {
+                    fetchProducts(currentPage - 1)
+                } else {
+                    // Refresh current page to update counts
+                    fetchProducts(currentPage)
+                }
+
                 toast({
                     title: "Xóa sản phẩm thành công",
                     description: "Sản phẩm đã được xóa khỏi hệ thống.",
                 })
-            } else {
+            } catch (err: any) {
                 toast({
                     title: "Xóa sản phẩm thất bại",
-                    description: "Đã xảy ra lỗi khi xóa sản phẩm. Vui lòng thử lại sau.",
+                    description: err.response?.data?.message || "Đã xảy ra lỗi khi xóa sản phẩm. Vui lòng thử lại sau.",
                     variant: "destructive",
                 })
+            } finally {
+                setIsDeleting(false)
+                setDeleteDialogOpen(false)
+                setProductToDelete(null)
             }
-            setDeleteDialogOpen(false)
-            setProductToDelete(null)
         }
     }
 
@@ -96,6 +161,33 @@ export default function ProductsPage() {
                         </div>
                     </div>
 
+                    {error && (
+                        <div className="rounded-md bg-red-50 p-4 mb-6">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Lỗi khi tải dữ liệu</h3>
+                                    <div className="mt-2 text-sm text-red-700">
+                                        <p>{error}</p>
+                                    </div>
+                                    <div className="mt-4">
+                                        <Button size="sm" onClick={() => fetchProducts(currentPage)}>
+                                            Thử lại
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
@@ -108,14 +200,23 @@ export default function ProductsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredProducts.length === 0 ? (
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8">
+                                            <div className="flex justify-center items-center">
+                                                <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                                                <span>Đang tải dữ liệu...</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : products.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                            Không tìm thấy sản phẩm nào
+                                            {searchTerm ? "Không tìm thấy sản phẩm nào phù hợp" : "Chưa có sản phẩm nào"}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredProducts.map((product) => (
+                                    products.map((product) => (
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
@@ -142,10 +243,10 @@ export default function ProductsPage() {
                                             <TableCell>
                                                 <span
                                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(product as any).stock > 10
-                                                            ? "bg-green-100 text-green-800"
-                                                            : (product as any).stock > 0
-                                                                ? "bg-yellow-100 text-yellow-800"
-                                                                : "bg-red-100 text-red-800"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : (product as any).stock > 0
+                                                            ? "bg-yellow-100 text-yellow-800"
+                                                            : "bg-red-100 text-red-800"
                                                         }`}
                                                 >
                                                     {(product as any).stock !== undefined
@@ -190,6 +291,19 @@ export default function ProductsPage() {
                             </TableBody>
                         </Table>
                     </div>
+
+                    {/* Pagination */}
+                    {!loading && products.length > 0 && (
+                        <div className="mt-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Hiển thị {(currentPage - 1) * pageSize + 1} đến {Math.min(currentPage * pageSize, totalItems)} trong
+                                    số {totalItems} sản phẩm
+                                </p>
+                            </div>
+                            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -203,11 +317,18 @@ export default function ProductsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
                             Hủy
                         </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
-                            Xóa
+                        <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Đang xóa...
+                                </>
+                            ) : (
+                                "Xóa"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

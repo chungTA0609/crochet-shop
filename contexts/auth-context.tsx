@@ -1,17 +1,18 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import api, { setAuthToken } from "@/lib/axios"
+import api from "@/lib/axios"
 import { toast } from "@/components/ui/use-toast"
+import { setCookie, getCookie, deleteCookie, areCookiesEnabled } from "@/lib/cookies"
 
 // Define user type
 export interface User {
     id: string
     email: string
     name: string
-    role: "admin" | "customer"
+    roles: string[]
     avatar?: string
 }
 
@@ -20,7 +21,8 @@ interface AuthContextType {
     user: User | null
     isLoading: boolean
     isAuthenticated: boolean
-    login: (email: string, password: string) => Promise<void>
+    checkAuth: () => Promise<boolean>
+    login: (email: string, password: string, redirectPath?: string, rememberMe?: boolean) => Promise<void>
     register: (name: string, email: string, password: string) => Promise<void>
     logout: () => void
     forgotPassword: (email: string) => Promise<void>
@@ -40,45 +42,80 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const router = useRouter()
     const pathname = usePathname()
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+    // Utility function to check if running in browser
+    const isBrowser = () => typeof window !== "undefined"
+
+    // Check if cookies are enabled
+    useEffect(() => {
+        if (isBrowser() && !areCookiesEnabled()) {
+            toast({
+                title: "Cookie bị vô hiệu hóa",
+                description: "Vui lòng bật cookie trong trình duyệt để sử dụng đầy đủ tính năng của trang web.",
+                variant: "destructive",
+            })
+        }
+    }, [])
+
+    // Function to check authentication status
+    const checkAuth = useCallback(async (): Promise<boolean> => {
+        if (!isBrowser()) {
+            return false
+        }
+
+        const token = getCookie("auth_token")
+
+        if (!token) {
+            setIsAuthenticated(false)
+            return false
+        }
+        setIsAuthenticated(true)
+
+        try {
+            const response = await api.get("/api/user/profile")
+            setIsAuthenticated(true)
+            setUser(response.data.data)
+            return true
+        } catch (error) {
+            // Token is invalid or expired
+            deleteCookie("auth_token")
+            setIsAuthenticated(false)
+            return false
+        }
+    }, [])
 
     // Check if user is authenticated on mount
     useEffect(() => {
-        const checkAuth = async () => {
-            const token = localStorage.getItem("auth_token")
-
-            if (token) {
-                setAuthToken(token)
-                try {
-                    const response = await api.get("/api/auth/me")
-                    setUser(response.data.user)
-                } catch (error) {
-                    // Token is invalid or expired
-                    setAuthToken(null)
-                }
-            }
-
+        const initialAuthCheck = async () => {
+            await checkAuth()
             setIsLoading(false)
         }
 
-        checkAuth()
-    }, [])
+        initialAuthCheck()
+    }, [checkAuth])
 
+    // Computed property for authentication status
     // Redirect based on auth state
     useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && isBrowser()) {
             // Redirect authenticated users away from auth pages
-            if (user && (pathname?.includes("/auth/login") || pathname?.includes("/auth/register"))) {
-                router.push("/")
+            if (isAuthenticated && (pathname?.includes("/auth/login") || pathname?.includes("/auth/register"))) {
+                // Get the redirect path from URL or use home page
+                const params = new URLSearchParams(window.location.search)
+                const redirectPath = params.get("redirect") || "/"
+                router.push(redirectPath)
             }
 
             // Redirect unauthenticated users away from protected pages
             const protectedRoutes = ["/profile", "/orders", "/checkout"]
-            if (!user && protectedRoutes.some((route) => pathname?.startsWith(route))) {
-                router.push("/auth/login")
+            if (!isAuthenticated && protectedRoutes.some((route) => pathname?.startsWith(route))) {
+                // Store the current path for redirect after login
+                router.push(`/auth/login?redirect=${encodeURIComponent(pathname || "/")}`)
             }
 
             // Redirect non-admin users away from admin pages
-            if (user?.role !== "admin" && pathname?.startsWith("/admin")) {
+            if (!user?.roles.includes("ADMIN") && pathname?.startsWith("/admin")) {
                 router.push("/")
                 toast({
                     title: "Truy cập bị từ chối",
@@ -87,24 +124,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 })
             }
         }
-    }, [user, isLoading, pathname, router])
+    }, [isAuthenticated, user, isLoading, pathname, router])
 
     // Login function
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string, redirectPath?: string, rememberMe = false) => {
         setIsLoading(true)
         try {
             const response = await api.post("/api/auth/login", { email, password })
-            const { token, user } = response.data
+            const { data } = response.data
 
-            setAuthToken(token)
-            setUser(user)
+            // Set cookie with token - use longer expiration if "remember me" is checked
+            const cookieOptions = {
+                days: rememberMe ? 30 : 1,
+                secure: window.location.protocol === "https:",
+                sameSite: "lax" as const,
+            }
+
+            setCookie("auth_token", data, cookieOptions)
+            setIsAuthenticated(true)
 
             toast({
                 title: "Đăng nhập thành công",
-                description: `Chào mừng trở lại, ${user.name}!`,
+                description: `Chào mừng trở lại !`,
             })
 
-            router.push("/")
+            // Redirect to the specified path or home page
+            router.push(redirectPath || "/")
         } catch (error) {
             // Error is handled by axios interceptor
         } finally {
@@ -117,10 +162,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setIsLoading(true)
         try {
             const response = await api.post("/api/auth/register", { name, email, password })
-            const { token, user } = response.data
+            const { data } = response.data
 
-            setAuthToken(token)
-            setUser(user)
+            // Set cookie with token
+            setCookie("auth_token", data, {
+                days: 1,
+                secure: window.location.protocol === "https:",
+                sameSite: "lax" as const,
+            })
+
+            setIsAuthenticated(true)
 
             toast({
                 title: "Đăng ký thành công",
@@ -137,8 +188,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Logout function
     const logout = () => {
-        setAuthToken(null)
+        deleteCookie("auth_token")
         setUser(null)
+        setIsAuthenticated(false)
 
         toast({
             title: "Đăng xuất thành công",
@@ -189,7 +241,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const value = {
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated,
+        checkAuth,
         login,
         register,
         logout,

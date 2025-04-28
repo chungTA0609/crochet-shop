@@ -1,32 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { products as initialProducts } from "@/lib/constants"
+import { products as initialProducts, Product } from "@/lib/constants"
 
 // Types
-export type Product = {
-    id: number
-    name: string
-    price: number
-    image: string
-    images?: string[]
-    category: string
-    description?: string
-    longDescription?: string
-    rating?: number
-    reviews?: number
-    colors?: Color[]
-    sizes?: string[]
-    specifications?: Record<string, string>
-    dimensions?: Record<string, string>
-}
-
-export interface Color {
-    id?: number
-    name: string
-    value?: string
-    hex: string
-}
 
 // Context type
 type ProductContextType = {

@@ -2,13 +2,14 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import { UserProvider, useUserAdmin, type User } from "./admin/user-context"
-import { ProductProvider, useProductAdmin, type Product, type Color } from "./admin/product-context"
+import { ProductProvider, useProductAdmin, } from "./admin/product-context"
 import { CategoryProvider, useCategoryAdmin, type Category } from "./admin/category-context"
 import { OrderAdminProvider, useOrderAdmin } from "./admin/order-admin-context"
 import { PromoCodeProvider, usePromoCodeAdmin, type PromoCode } from "./admin/promo-code-context"
 import { ShippingProvider, useShippingAdmin, type ShippingZone } from "./admin/shipping-context"
 import { MetricsProvider, useMetricsAdmin, type AdminMetrics } from "./admin/metrics-context"
 import type { OrderStatus } from "@/contexts/order-context"
+import { Color, Product } from "@/lib/constants"
 
 // Re-export types
 export type { User, Product, Color, Category, PromoCode, ShippingZone, AdminMetrics }
