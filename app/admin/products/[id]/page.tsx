@@ -206,7 +206,7 @@ export default function EditProductPage() {
         if (!product) return
 
         // Validate form data
-        if (!formData.name || !formData.price || !formData.category) {
+        if (!formData.name || !formData.price) {
             toast({
                 title: "Thông tin không đầy đủ",
                 description: "Vui lòng điền đầy đủ thông tin bắt buộc.",
@@ -219,7 +219,9 @@ export default function EditProductPage() {
 
         try {
             // Update product via API
-            await api.put(`/api/products/${productId}`, formData)
+            const dimensionsArr = Object.entries(formData.dimensions).map(([key, value]) => ({ key, value }));
+            const specificationsArr = Object.entries(formData.specifications).map(([key, value]) => ({ key, value }));
+            await api.put(`/api/products/${productId}`, { ...formData, dimensions: dimensionsArr, specifications: specificationsArr })
 
             toast({
                 title: "Cập nhật thành công",
