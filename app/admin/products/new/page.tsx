@@ -2,11 +2,10 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { useAdmin } from "@/contexts/admin-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,14 +13,22 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { ArrowLeft, Save, Plus, X } from "lucide-react"
+import { ArrowLeft, Save, Plus, X, Loader2 } from "lucide-react"
+import api from "@/lib/axios"
+
+interface Category {
+    id: number
+    name: string
+}
 
 export default function NewProductPage() {
     const router = useRouter()
-    const { createProduct, categories } = useAdmin()
+    const [isSaving, setIsSaving] = useState(false)
+    const [categories, setCategories] = useState<Category[]>([])
     const [formData, setFormData] = useState({
         name: "",
         price: 0,
+        stockQuantity: 0,
         image: "",
         category: "",
         description: "",
@@ -34,11 +41,30 @@ export default function NewProductPage() {
     const [newColor, setNewColor] = useState({ name: "", hex: "#ec4899" })
     const [newSize, setNewSize] = useState("")
 
+    // Fetch categories
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await api.get("/api/categories")
+                setCategories(response.data || [])
+            } catch (err) {
+                console.error("Failed to fetch categories:", err)
+                toast({
+                    title: "Lỗi khi tải danh mục",
+                    description: "Đã xảy ra lỗi khi tải danh sách danh mục. Vui lòng thử lại sau.",
+                    variant: "destructive",
+                })
+            }
+        }
+
+        fetchCategories()
+    }, [])
+
     // Handle input change
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
 
-        if (name === "price") {
+        if (name === "price" || name === "stockQuantity") {
             setFormData((prev) => ({
                 ...prev,
                 [name]: Number(value),
@@ -136,7 +162,7 @@ export default function NewProductPage() {
     }
 
     // Handle form submission
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         // Validate form data
@@ -149,9 +175,58 @@ export default function NewProductPage() {
             return
         }
 
-        // Create product
+        // Validate stock quantity
+        if (formData.stockQuantity < 0) {
+            toast({
+                title: "Số lượng tồn kho không hợp lệ",
+                description: "Vui lòng nhập số lượng tồn kho hợp lệ (lớn hơn hoặc bằng 0).",
+                variant: "destructive",
+            })
+            return
+        }
+
+        setIsSaving(true)
+
         try {
-            const newProduct = createProduct(formData)
+            // Transform form data to match API format
+            console.log(formData.colors);
+            
+            const productData = {
+                name: formData.name,
+                description: formData.description,
+                longDescription: formData.longDescription,
+                price: formData.price,
+                mainImage: formData.image,
+                categoryId: Number.parseInt(formData.category) || 1, // Convert to number or use default
+                stockQuantity: formData.stockQuantity,
+                brand: "Default Brand", // Add default brand
+                images: [
+                    {
+                        imageUrl: formData.image,
+                        main: true,
+                    },
+                ],
+                colors: formData.colors.map((color) => ({
+                    name: color.name,
+                    value: color.name.toLowerCase(),
+                    hex: color.hex,
+                })),
+                sizes: formData.sizes,
+                specifications: Object.entries(formData.specifications).map(([key, value]) => ({
+                    key,
+                    value,
+                })),
+                dimensions: Object.entries(formData.dimensions).map(([key, value]) => ({
+                    key,
+                    value,
+                })),
+                active: true,
+                rating: 0,
+                reviewCount: 0,
+            }
+
+            // Create product via API
+            await api.post("/api/products", productData)
 
             toast({
                 title: "Tạo sản phẩm thành công",
@@ -159,12 +234,15 @@ export default function NewProductPage() {
             })
 
             router.push("/admin/products")
-        } catch (error) {
+        } catch (err) {
+            console.error("Error creating product:", err)
             toast({
                 title: "Tạo sản phẩm thất bại",
                 description: "Đã xảy ra lỗi khi tạo sản phẩm mới. Vui lòng thử lại sau.",
                 variant: "destructive",
             })
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -206,6 +284,21 @@ export default function NewProductPage() {
                                     name="price"
                                     type="number"
                                     value={formData.price || ""}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="stockQuantity">
+                                    Số lượng tồn kho <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="stockQuantity"
+                                    name="stockQuantity"
+                                    type="number"
+                                    min="0"
+                                    value={formData.stockQuantity || 0}
                                     onChange={handleInputChange}
                                     required
                                 />
@@ -475,9 +568,18 @@ export default function NewProductPage() {
                     <Button variant="outline" asChild>
                         <Link href="/admin/products">Hủy</Link>
                     </Button>
-                    <Button type="submit">
-                        <Save className="mr-2 h-4 w-4" />
-                        Tạo sản phẩm
+                    <Button type="submit" disabled={isSaving}>
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Đang lưu...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Tạo sản phẩm
+                            </>
+                        )}
                     </Button>
                 </div>
             </form>

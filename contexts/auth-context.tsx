@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setIsAuthenticated(true)
 
         try {
-            const response = await api.get("/api/user/profile")
+            const response = await api.get("/api/users/profile")
             setIsAuthenticated(true)
             setUser(response.data.data)
             return true
@@ -161,7 +161,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const register = async (name: string, email: string, password: string) => {
         setIsLoading(true)
         try {
-            const response = await api.post("/api/auth/register", { name, email, password })
+            const response = await api.post("/api/auth/register", {
+                firstName: name, lastName: name, email, password,
+                roles: ["ADMIN"]
+            })
             const { data } = response.data
 
             // Set cookie with token

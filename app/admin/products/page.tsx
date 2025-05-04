@@ -52,7 +52,7 @@ export default function ProductsPage() {
             const response = await api.post("/api/products/get-list", {
                 keyword: searchTerm,
                 sortBy: "",
-                sortDirection: "",
+                sortDirection: "asc",
                 page: page,
                 size: pageSize,
             })
