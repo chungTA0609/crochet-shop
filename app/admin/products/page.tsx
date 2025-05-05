@@ -57,9 +57,9 @@ export default function ProductsPage() {
                 size: pageSize,
             })
 
-            setProducts(response.data.content || [])
-            setTotalItems(response.data.totalElements || 0)
-            setTotalPages(response.data.totalPages || 1)
+            setProducts(response.data.data.content || [])
+            setTotalItems(response.data.data.totalElements || 0)
+            setTotalPages(response.data.data.totalPages || 1)
             setCurrentPage(page)
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to fetch products")

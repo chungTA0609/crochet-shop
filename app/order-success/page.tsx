@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, ShoppingBag, Home, FileText, Eye } from "lucide-react"

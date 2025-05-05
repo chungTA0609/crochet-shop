@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { useOrder, type Order, type OrderStatus } from "@/contexts/order-context"
+import { useOrder, type Order } from "@/contexts/order-context"
 import { useAdmin } from "@/contexts/admin-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,20 +17,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { Search, MoreHorizontal, Eye, FileText, AlertTriangle } from "lucide-react"
+import { CancelOrderDialog } from "@/components/admin/cancel-order-dialog"
+import { UpdateOrderStatusDialog } from "@/components/admin/update-order-status-dialog"
+import { getStatusBadgeClass, getStatusText, type OrderStatus } from "@/lib/order-utils"
 
 export default function OrdersPage() {
     const searchParams = useSearchParams()
@@ -41,9 +34,6 @@ export default function OrdersPage() {
     const [updateStatusDialogOpen, setUpdateStatusDialogOpen] = useState(false)
     const [cancelOrderDialogOpen, setCancelOrderDialogOpen] = useState(false)
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-    const [newStatus, setNewStatus] = useState<OrderStatus>("pending")
-    const [statusNote, setStatusNote] = useState("")
-    const [cancelReason, setCancelReason] = useState("")
 
     // Set initial status filter from URL query parameter
     useEffect(() => {
@@ -68,18 +58,16 @@ export default function OrdersPage() {
     // Handle status update
     const handleUpdateStatusClick = (order: Order) => {
         setSelectedOrder(order)
-        setNewStatus(order.status)
-        setStatusNote("")
         setUpdateStatusDialogOpen(true)
     }
 
-    const confirmUpdateStatus = () => {
-        if (selectedOrder && newStatus) {
-            const success = updateOrderStatus(selectedOrder.id, newStatus, statusNote)
+    const handleUpdateStatus = (newStatus: string, statusNote: string) => {
+        if (selectedOrder) {
+            const success = updateOrderStatus(selectedOrder.id, newStatus as any, statusNote)
             if (success) {
                 toast({
                     title: "Cập nhật trạng thái thành công",
-                    description: `Đơn hàng #${selectedOrder.orderNumber} đã được cập nhật thành ${getStatusText(newStatus)}.`,
+                    description: `Đơn hàng #${selectedOrder.orderNumber} đã được cập nhật thành ${getStatusText(newStatus as OrderStatus)}.`,
                 })
             } else {
                 toast({
@@ -96,12 +84,11 @@ export default function OrdersPage() {
     // Handle order cancellation
     const handleCancelOrderClick = (order: Order) => {
         setSelectedOrder(order)
-        setCancelReason("")
         setCancelOrderDialogOpen(true)
     }
 
-    const confirmCancelOrder = () => {
-        if (selectedOrder && cancelReason) {
+    const handleCancelOrder = (cancelReason: string) => {
+        if (selectedOrder) {
             const success = cancelOrder(selectedOrder.id, cancelReason)
             if (success) {
                 toast({
@@ -117,56 +104,6 @@ export default function OrdersPage() {
             }
             setCancelOrderDialogOpen(false)
             setSelectedOrder(null)
-        } else if (!cancelReason) {
-            toast({
-                title: "Vui lòng nhập lý do hủy đơn",
-                description: "Bạn cần nhập lý do hủy đơn hàng để tiếp tục.",
-                variant: "destructive",
-            })
-        }
-    }
-
-    // Get status badge color
-    const getStatusBadgeClass = (status: OrderStatus) => {
-        switch (status) {
-            case "pending":
-                return "bg-yellow-100 text-yellow-800"
-            case "paid":
-                return "bg-blue-100 text-blue-800"
-            case "processing":
-                return "bg-purple-100 text-purple-800"
-            case "shipped":
-                return "bg-indigo-100 text-indigo-800"
-            case "delivered":
-                return "bg-green-100 text-green-800"
-            case "completed":
-                return "bg-green-100 text-green-800"
-            case "cancelled":
-                return "bg-red-100 text-red-800"
-            default:
-                return "bg-gray-100 text-gray-800"
-        }
-    }
-
-    // Get status text in Vietnamese
-    const getStatusText = (status: OrderStatus) => {
-        switch (status) {
-            case "pending":
-                return "Chờ xác nhận"
-            case "paid":
-                return "Đã thanh toán"
-            case "processing":
-                return "Đang xử lý"
-            case "shipped":
-                return "Đang giao hàng"
-            case "delivered":
-                return "Đã giao hàng"
-            case "completed":
-                return "Hoàn thành"
-            case "cancelled":
-                return "Đã hủy"
-            default:
-                return status
         }
     }
 
@@ -284,78 +221,25 @@ export default function OrdersPage() {
                 </CardContent>
             </Card>
 
-            {/* Update Status Dialog */}
-            <Dialog open={updateStatusDialogOpen} onOpenChange={setUpdateStatusDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Cập nhật trạng thái đơn hàng</DialogTitle>
-                        <DialogDescription>Cập nhật trạng thái cho đơn hàng #{selectedOrder?.orderNumber}</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Trạng thái mới</label>
-                            <Select value={newStatus} onValueChange={(value) => setNewStatus(value as OrderStatus)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn trạng thái" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                                    <SelectItem value="paid">Đã thanh toán</SelectItem>
-                                    <SelectItem value="processing">Đang xử lý</SelectItem>
-                                    <SelectItem value="shipped">Đang giao hàng</SelectItem>
-                                    <SelectItem value="delivered">Đã giao hàng</SelectItem>
-                                    <SelectItem value="completed">Hoàn thành</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Ghi chú (tùy chọn)</label>
-                            <Textarea
-                                placeholder="Nhập ghi chú cho trạng thái mới"
-                                value={statusNote}
-                                onChange={(e) => setStatusNote(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setUpdateStatusDialogOpen(false)}>
-                            Hủy
-                        </Button>
-                        <Button onClick={confirmUpdateStatus}>Cập nhật</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Use the reusable dialog components */}
+            {selectedOrder && (
+                <>
+                    <UpdateOrderStatusDialog
+                        open={updateStatusDialogOpen}
+                        onOpenChange={setUpdateStatusDialogOpen}
+                        orderNumber={selectedOrder.orderNumber}
+                        currentStatus={selectedOrder.status}
+                        onConfirm={handleUpdateStatus}
+                    />
 
-            {/* Cancel Order Dialog */}
-            <Dialog open={cancelOrderDialogOpen} onOpenChange={setCancelOrderDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Hủy đơn hàng</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc chắn muốn hủy đơn hàng #{selectedOrder?.orderNumber}? Hành động này không thể hoàn tác.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Lý do hủy đơn</label>
-                            <Textarea
-                                placeholder="Nhập lý do hủy đơn hàng"
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setCancelOrderDialogOpen(false)}>
-                            Quay lại
-                        </Button>
-                        <Button variant="destructive" onClick={confirmCancelOrder}>
-                            Hủy đơn hàng
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    <CancelOrderDialog
+                        open={cancelOrderDialogOpen}
+                        onOpenChange={setCancelOrderDialogOpen}
+                        orderNumber={selectedOrder.orderNumber}
+                        onConfirm={handleCancelOrder}
+                    />
+                </>
+            )}
         </div>
     )
 }

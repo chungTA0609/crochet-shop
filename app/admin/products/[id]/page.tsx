@@ -15,9 +15,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast"
 import { ArrowLeft, Save, Plus, X, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
-import { Category, Product } from "@/lib/constants"
 
+interface Category {
+    id: number
+    name: string
+}
 
+interface Color {
+    id?: number
+    name: string
+    hex: string
+}
+
+interface Product {
+    id: number
+    name: string
+    price: number
+    image: string
+    mainImage?: string
+    stockQuantity: number
+    images?: string[]
+    category?: string
+    categoryId?: number
+    description?: string
+    longDescription?: string
+    colors?: Color[]
+    sizes?: string[]
+    specifications?: Record<string, string>
+    dimensions?: Record<string, string>
+}
 
 export default function EditProductPage() {
     const params = useParams()
@@ -30,6 +56,7 @@ export default function EditProductPage() {
     const [formData, setFormData] = useState<Partial<Product>>({})
     const [newColor, setNewColor] = useState({ name: "", hex: "#ec4899" })
     const [newSize, setNewSize] = useState("")
+    const [pendingCategoryId, setPendingCategoryId] = useState<number | null>(null)
 
     const productId = Number(params.id)
 
@@ -48,6 +75,20 @@ export default function EditProductPage() {
         fetchCategories()
     }, [])
 
+    // Handle pending category ID when categories are loaded
+    useEffect(() => {
+        if (pendingCategoryId && categories.length > 0) {
+            const matchingCategory = categories.find((cat) => cat.id === pendingCategoryId)
+            if (matchingCategory) {
+                setFormData((prev) => ({
+                    ...prev,
+                    category: matchingCategory.name,
+                }))
+                setPendingCategoryId(null)
+            }
+        }
+    }, [pendingCategoryId, categories])
+
     // Fetch product data
     useEffect(() => {
         const fetchProduct = async () => {
@@ -58,22 +99,44 @@ export default function EditProductPage() {
 
             try {
                 const response = await api.get(`/api/products/${productId}`)
-                const productData = response.data
+                const productData = response.data.data
 
                 if (productData) {
+                    // Convert specifications and dimensions from array to object format
+                    const specifications = Array.isArray(productData.specifications)
+                        ? Object.fromEntries(productData.specifications.map((spec) => [spec.key, spec.value]))
+                        : productData.specifications || {}
+
+                    const dimensions = Array.isArray(productData.dimensions)
+                        ? Object.fromEntries(productData.dimensions.map((dim) => [dim.key, dim.value]))
+                        : productData.dimensions || {}
+
                     setProduct(productData)
+
+                    // Try to find the category name if categories are already loaded
+                    let categoryName = undefined
+                    if (productData.categoryId && categories.length > 0) {
+                        const category = categories.find((cat) => cat.id === productData.categoryId)
+                        categoryName = category?.name
+                    } else if (productData.categoryId) {
+                        // If categories aren't loaded yet, store the ID for later
+                        setPendingCategoryId(productData.categoryId)
+                    }
+
                     setFormData({
                         name: productData.name,
                         price: productData.price,
-                        image: productData.image,
+                        stockQuantity: productData.stockQuantity || 0,
+                        image: productData.mainImage || productData.image, // Support both field names
                         images: productData.images || [],
-                        category: productData.category,
+                        category: categoryName, // Set category name if found
+                        categoryId: productData.categoryId, // Also store the ID for reference
                         description: productData.description || "",
                         longDescription: productData.longDescription || "",
                         colors: productData.colors || [],
                         sizes: productData.sizes || [],
-                        specifications: productData.specifications || {},
-                        dimensions: productData.dimensions || {},
+                        specifications: specifications,
+                        dimensions: dimensions,
                     })
                 } else {
                     setError("Product not found")
@@ -96,13 +159,13 @@ export default function EditProductPage() {
         }
 
         fetchProduct()
-    }, [productId])
+    }, [productId, categories])
 
     // Handle input change
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
 
-        if (name === "price") {
+        if (name === "price" || name === "stockQuantity") {
             setFormData((prev) => ({
                 ...prev,
                 [name]: Number(value),
@@ -117,10 +180,20 @@ export default function EditProductPage() {
 
     // Handle select change
     const handleSelectChange = (name: string, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }))
+        if (name === "category") {
+            // When category changes, update the categoryId as well
+            const selectedCategory = categories.find((cat) => cat.name === value)
+            setFormData((prev) => ({
+                ...prev,
+                [name]: value,
+                categoryId: selectedCategory?.id,
+            }))
+        } else {
+            setFormData((prev) => ({
+                ...prev,
+                [name]: value,
+            }))
+        }
     }
 
     // Handle specifications change
@@ -206,10 +279,20 @@ export default function EditProductPage() {
         if (!product) return
 
         // Validate form data
-        if (!formData.name || !formData.price) {
+        if (!formData.name || !formData.price || !formData.category) {
             toast({
                 title: "Thông tin không đầy đủ",
                 description: "Vui lòng điền đầy đủ thông tin bắt buộc.",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // Validate stock quantity
+        if (formData.stockQuantity === undefined || formData.stockQuantity < 0) {
+            toast({
+                title: "Số lượng tồn kho không hợp lệ",
+                description: "Vui lòng nhập số lượng tồn kho hợp lệ (lớn hơn hoặc bằng 0).",
                 variant: "destructive",
             })
             return
@@ -219,9 +302,40 @@ export default function EditProductPage() {
 
         try {
             // Update product via API
-            const dimensionsArr = Object.entries(formData.dimensions).map(([key, value]) => ({ key, value }));
-            const specificationsArr = Object.entries(formData.specifications).map(([key, value]) => ({ key, value }));
-            await api.put(`/api/products/${productId}`, { ...formData, dimensions: dimensionsArr, specifications: specificationsArr })
+            const productData = {
+                name: formData.name,
+                description: formData.description,
+                longDescription: formData.longDescription,
+                price: formData.price,
+                mainImage: formData.image,
+                categoryId: Number.parseInt(formData.category) || 1, // Convert to number or use default
+                stockQuantity: formData.stockQuantity,
+                brand: "Default Brand", // Add default brand
+                images: [
+                    {
+                        imageUrl: formData.image,
+                        main: true,
+                    },
+                ],
+                colors: formData.colors?.map((color) => ({
+                    name: color.name,
+                    value: color.name.toLowerCase(),
+                    hex: color.hex,
+                })),
+                sizes: formData.sizes,
+                specifications: Object.entries(formData.specifications).map(([key, value]) => ({
+                    key,
+                    value,
+                })),
+                dimensions: Object.entries(formData.dimensions).map(([key, value]) => ({
+                    key,
+                    value,
+                })),
+                active: true,
+                rating: 0,
+                reviewCount: 0,
+            }
+            await api.put(`/api/products/${productId}`, productData)
 
             toast({
                 title: "Cập nhật thành công",
@@ -318,6 +432,21 @@ export default function EditProductPage() {
                                     name="price"
                                     type="number"
                                     value={formData.price || ""}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="stockQuantity">
+                                    Số lượng tồn kho <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="stockQuantity"
+                                    name="stockQuantity"
+                                    type="number"
+                                    min="0"
+                                    value={formData.stockQuantity || 0}
                                     onChange={handleInputChange}
                                     required
                                 />

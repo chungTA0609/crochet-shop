@@ -90,6 +90,40 @@ const sampleAddresses: Address[] = [
     postalCode: "700000",
     isDefault: false,
   },
+  {
+    id: "addr3",
+    fullName: "Trần Thị B",
+    phone: "0912345678",
+    email: "tranthib@example.com",
+    address: "789 Đường Hai Bà Trưng",
+    city: "Quận 3",
+    province: "TP Hồ Chí Minh",
+    postalCode: "700000",
+    isDefault: false,
+  },
+  {
+    id: "addr4",
+    fullName: "Lê Văn C",
+    phone: "0923456789",
+    email: "levanc@example.com",
+    address: "12 Đường Pasteur",
+    city: "Quận 1",
+    province: "TP Hồ Chí Minh",
+    postalCode: "700000",
+    isDefault: false,
+  },
+  {
+    id: "addr5",
+    fullName: "Phạm Thị D",
+    phone: "0934567890",
+    email: "phamthid@example.com",
+    address: "88 Đường Cách Mạng Tháng 8",
+    city: "Quận 10",
+    province: "TP Hồ Chí Minh",
+    postalCode: "700000",
+    isDefault: false,
+  }
+
 ]
 
 const shippingMethods: ShippingMethod[] = [
@@ -152,7 +186,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   const { cartItems, cartTotal, clearCart } = useCart()
 
   const [state, setState] = useState<CheckoutState>({
-    step: 1,
+    step: 2,
     shippingAddress: null,
     shippingMethod: null,
     paymentMethod: null,

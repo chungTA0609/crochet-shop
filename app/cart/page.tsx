@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -12,30 +12,81 @@ import { CartItem } from "@/components/cart/cart-item"
 import { CartSummary } from "@/components/cart/cart-summary"
 import { EmptyCart } from "@/components/cart/empty-cart"
 import { toast } from "@/components/ui/use-toast"
+import axios from "@/lib/axios"
+
+// Define the discount info interface
+interface DiscountInfo {
+    type: "percentage" | "fixed"
+    value: number
+    maxDiscount?: number
+    code: string
+}
 
 export default function CartPage() {
     const { cartItems, removeFromCart, updateCartItemQuantity, addToWishlist, cartTotal, cartCount } = useCart()
 
     const [couponCode, setCouponCode] = useState("")
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+    const [discount, setDiscount] = useState<DiscountInfo | null>(null)
 
     const shippingFee = cartTotal > 500000 ? 0 : 30000
 
     const breadcrumbItems = [{ label: "Trang chủ", href: "/" }, { label: "Giỏ hàng" }]
 
-    const handleApplyCoupon = () => {
+    const handleApplyCoupon = async () => {
         if (!couponCode) return
         setIsApplyingCoupon(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsApplyingCoupon(false)
+        try {
+            // Send the request with the promo code as a query parameter and empty body
+            const response = await axios.post(
+                `/api/checkout/promo-code/calculate?promoCode=${encodeURIComponent(couponCode)}`,
+                "",
+            )
+
+            if (response.data.status === "SUCCESS") {
+                toast({
+                    title: "Mã giảm giá hợp lệ",
+                    description: response.data.message || "Mã giảm giá đã được áp dụng thành công",
+                    variant: "default",
+                })
+
+                // Store the discount information from the API response
+                setDiscount({
+                    type: response.data.discountType || "fixed",
+                    value: response.data.data || 0,
+                    maxDiscount: response.data.data,
+                    code: couponCode,
+                })
+
+                // Clear the input field after successful application
+                setCouponCode("")
+            } else {
+                toast({
+                    title: "Mã giảm giá không hợp lệ",
+                    description: response.data.message || "Mã giảm giá không hợp lệ hoặc đã hết hạn",
+                    variant: "destructive",
+                })
+            }
+        } catch (error) {
+            console.error("Error applying promo code:", error)
             toast({
-                title: "Mã giảm giá không hợp lệ",
-                description: "Mã giảm giá không hợp lệ hoặc đã hết hạn",
+                title: "Lỗi",
+                description: "Đã xảy ra lỗi khi áp dụng mã giảm giá. Vui lòng thử lại sau.",
                 variant: "destructive",
             })
-        }, 1000)
+        } finally {
+            setIsApplyingCoupon(false)
+        }
+    }
+
+    const removeCoupon = () => {
+        setDiscount(null)
+        toast({
+            title: "Mã giảm giá đã được xóa",
+            description: "Mã giảm giá đã được xóa khỏi đơn hàng của bạn",
+            variant: "default",
+        })
     }
 
     const moveToWishlist = (item: (typeof cartItems)[0]) => {
@@ -81,33 +132,53 @@ export default function CartPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                                {/* <div className="mt-6 flex flex-col sm:flex-row gap-4">
                                     <div className="flex-1">
                                         <div className="relative">
-                                            <Input
-                                                placeholder="Nhập mã giảm giá"
-                                                value={couponCode}
-                                                onChange={(e) => setCouponCode(e.target.value)}
-                                                className="pr-24 rounded-full"
-                                            />
-                                            <Button
-                                                className="absolute right-0 top-0 rounded-l-none rounded-full h-full bg-pink-500 hover:bg-pink-600"
-                                                disabled={isApplyingCoupon}
-                                                onClick={handleApplyCoupon}
-                                            >
-                                                {isApplyingCoupon ? "Đang áp dụng..." : "Áp dụng"}
-                                            </Button>
+                                            {discount ? (
+                                                <>
+                                                    <div className="flex items-center bg-gray-100 px-4 py-2 rounded-full">
+                                                        <span className="flex-1">
+                                                            Mã giảm giá: <span className="font-medium">{discount.code}</span>
+                                                        </span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={removeCoupon}
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        >
+                                                            Xóa
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Input
+                                                        placeholder="Nhập mã giảm giá"
+                                                        value={couponCode}
+                                                        onChange={(e) => setCouponCode(e.target.value)}
+                                                        className="pr-24 rounded-full"
+                                                    />
+                                                    <Button
+                                                        className="absolute right-0 top-0 rounded-l-none rounded-full h-full bg-pink-500 hover:bg-pink-600"
+                                                        disabled={isApplyingCoupon}
+                                                        onClick={handleApplyCoupon}
+                                                    >
+                                                        {isApplyingCoupon ? "Đang áp dụng..." : "Áp dụng"}
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     <Button asChild variant="outline" className="rounded-full">
                                         <Link href="/shop">Tiếp tục mua sắm</Link>
                                     </Button>
-                                </div>
+                                </div> */}
                             </div>
 
                             {/* Order Summary */}
                             <div className="lg:col-span-1">
-                                <CartSummary cartTotal={cartTotal} shippingFee={shippingFee} />
+                                <CartSummary cartTotal={cartTotal} shippingFee={shippingFee} discount={discount} />
                             </div>
                         </div>
                     )}

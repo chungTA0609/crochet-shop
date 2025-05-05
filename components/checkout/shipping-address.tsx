@@ -1,18 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useCheckout, type Address } from "@/contexts/checkout-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import axios from "@/lib/axios"
 
 export function ShippingAddress() {
-  const { savedAddresses, state, setShippingAddress, addNewAddress } = useCheckout()
+  const { state, setShippingAddress, addNewAddress } = useCheckout()
   const [showNewAddressForm, setShowNewAddressForm] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [addresses, setAddresses] = useState<Address[]>([])
   const [newAddress, setNewAddress] = useState<Omit<Address, "id">>({
     fullName: "",
     phone: "",
@@ -24,8 +27,61 @@ export function ShippingAddress() {
     isDefault: false,
   })
 
+  // Fetch addresses from API
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      setIsLoading(true)
+      try {
+        const response = await axios.get("/api/addresses")
+        
+        if (response.data.data && Array.isArray(response.data.data)) {
+          const adrArray = response.data.data.map(element => {
+            return {
+              id: element.id.toString(),
+              fullName: element.fullName,
+              phone: element.phoneNumber,
+              email: element.email,
+              address: element.street,
+              city: element.state,
+              province: element.city,
+              postalCode: element.zipCode,
+              isDefault: element.default,
+            }
+          });
+          
+          setAddresses(adrArray)
+
+          // If there's a default address and no address is selected, select it
+          if (!state.shippingAddress) {
+            const defaultAddress = response.data.data.find((addr: Address) => addr.isDefault)
+            if (defaultAddress) {
+              setShippingAddress(defaultAddress)
+            }
+          }
+        } else {
+          toast({
+            title: "Lỗi tải địa chỉ",
+            description: "Không thể tải danh sách địa chỉ. Định dạng dữ liệu không hợp lệ.",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching addresses:", error)
+        toast({
+          title: "Lỗi tải địa chỉ",
+          description: "Đã xảy ra lỗi khi tải danh sách địa chỉ. Vui lòng thử lại sau.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAddresses()
+  }, [state.shippingAddress, setShippingAddress])
+
   const handleAddressChange = (addressId: string) => {
-    const selectedAddress = savedAddresses.find((addr) => addr.id === addressId) || null
+    const selectedAddress = addresses.find((addr) => addr.id === addressId) || null
     setShippingAddress(selectedAddress)
   }
 
@@ -33,7 +89,7 @@ export function ShippingAddress() {
     setNewAddress((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleAddNewAddress = () => {
+  const handleAddNewAddress = async () => {
     // Basic validation
     if (!newAddress.fullName || !newAddress.phone || !newAddress.address || !newAddress.city || !newAddress.province) {
       toast({
@@ -44,29 +100,52 @@ export function ShippingAddress() {
       return
     }
 
-    // Add new address
-    addNewAddress(newAddress as Address)
+    try {
+      // Call API to add new address
+      const response = await axios.post("/api/addresses", newAddress)
 
-    // Reset form
-    setNewAddress({
-      fullName: "",
-      phone: "",
-      email: "",
-      address: "",
-      city: "",
-      province: "",
-      postalCode: "",
-      isDefault: false,
-    })
+      if (response.data && response.data.id) {
+        // Add the new address to the list
+        const addedAddress = response.data
+        setAddresses((prev) => [...prev, addedAddress])
 
-    // Hide form
-    setShowNewAddressForm(false)
+        // Select the new address
+        setShippingAddress(addedAddress)
 
-    // Show success toast
-    toast({
-      title: "Thêm địa chỉ thành công",
-      description: "Địa chỉ mới đã được thêm vào danh sách",
-    })
+        // Also update the context
+        addNewAddress(addedAddress)
+
+        // Reset form
+        setNewAddress({
+          fullName: "",
+          phone: "",
+          email: "",
+          address: "",
+          city: "",
+          province: "",
+          postalCode: "",
+          isDefault: false,
+        })
+
+        // Hide form
+        setShowNewAddressForm(false)
+
+        // Show success toast
+        toast({
+          title: "Thêm địa chỉ thành công",
+          description: "Địa chỉ mới đã được thêm vào danh sách",
+        })
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (error) {
+      console.error("Error adding new address:", error)
+      toast({
+        title: "Lỗi thêm địa chỉ",
+        description: "Đã xảy ra lỗi khi thêm địa chỉ mới. Vui lòng thử lại.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -74,9 +153,14 @@ export function ShippingAddress() {
       <div>
         <h2 className="text-lg font-medium mb-4">Địa chỉ giao hàng</h2>
 
-        {savedAddresses.length > 0 && (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+            <span className="ml-2 text-gray-500">Đang tải địa chỉ...</span>
+          </div>
+        ) : addresses.length > 0 ? (
           <RadioGroup value={state.shippingAddress?.id || ""} onValueChange={handleAddressChange} className="space-y-3">
-            {savedAddresses.map((address) => (
+            {addresses.map((address) => (
               <div key={address.id} className="flex items-start space-x-2 border p-4 rounded-lg">
                 <RadioGroupItem value={address.id} id={address.id} className="mt-1" />
                 <Label htmlFor={address.id} className="flex-1 cursor-pointer">
@@ -97,6 +181,10 @@ export function ShippingAddress() {
               </div>
             ))}
           </RadioGroup>
+        ) : (
+          <div className="text-center py-6 border rounded-lg bg-gray-50">
+            <p className="text-gray-500">Bạn chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới.</p>
+          </div>
         )}
 
         {!showNewAddressForm ? (

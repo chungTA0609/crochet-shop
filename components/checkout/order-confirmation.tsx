@@ -2,16 +2,34 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useCheckout } from "@/contexts/checkout-context"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
 import { CheckCircle2, CreditCard, MapPin, Truck, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "@/components/ui/use-toast"
 
-export function OrderConfirmation() {
+// Define the interface for the checkout data
+interface CheckoutData {
+  cartItems: any[]
+  shippingAddress: any | null
+  shippingMethod: any | null
+  paymentMethod: string | null
+  notes: string
+  promoCode: string | null
+  subtotal: number
+  shippingCost: number
+  discount: number
+  total: number
+}
+
+interface OrderConfirmationProps {
+  checkoutData: CheckoutData
+  onCreateOrder: () => Promise<void>
+}
+
+export function OrderConfirmation({ checkoutData, onCreateOrder }: OrderConfirmationProps) {
   const router = useRouter()
-  const { state, subTotal, shippingCost, discount, total, placeOrder } = useCheckout()
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [orderResult, setOrderResult] = useState<{
     success: boolean
@@ -23,19 +41,26 @@ export function OrderConfirmation() {
     setIsPlacingOrder(true)
 
     try {
-      const result = await placeOrder()
-      setOrderResult(result)
+      // Call the onCreateOrder function passed from the parent
+      await onCreateOrder()
 
-      if (result.success) {
-        // In a real app, you might redirect to an order confirmation page
-        setTimeout(() => {
-          router.push(`/order-success?orderId=${result.orderId}`)
-        }, 2000)
-      }
+      // Set success state (this might be redundant if onCreateOrder handles navigation)
+      setOrderResult({
+        success: true,
+        orderId: "generated-by-parent", // This will likely not be used since parent handles navigation
+      })
     } catch (error) {
+      // Set error state
       setOrderResult({
         success: false,
         error: "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
+      })
+
+      // Show error toast
+      toast({
+        title: "Đặt hàng thất bại",
+        description: "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
+        variant: "destructive",
       })
     } finally {
       setIsPlacingOrder(false)
@@ -43,11 +68,11 @@ export function OrderConfirmation() {
   }
 
   // Check if all required information is provided
-  const canPlaceOrder = state.shippingAddress && state.shippingMethod && state.paymentMethod
+  const canPlaceOrder = checkoutData.shippingAddress && checkoutData.shippingMethod && checkoutData.paymentMethod
 
   // Get payment method display name
   const getPaymentMethodName = () => {
-    switch (state.paymentMethod) {
+    switch (checkoutData.paymentMethod) {
       case "credit-card":
         return "Thẻ tín dụng / Thẻ ghi nợ"
       case "paypal":
@@ -69,7 +94,7 @@ export function OrderConfirmation() {
           <AlertTitle>{orderResult.success ? "Đặt hàng thành công!" : "Đặt hàng thất bại"}</AlertTitle>
           <AlertDescription>
             {orderResult.success
-              ? `Đơn hàng #${orderResult.orderId} của bạn đã được đặt thành công. Cảm ơn bạn đã mua hàng!`
+              ? `Đơn hàng của bạn đã được đặt thành công. Cảm ơn bạn đã mua hàng!`
               : orderResult.error}
           </AlertDescription>
         </Alert>
@@ -82,15 +107,16 @@ export function OrderConfirmation() {
               <MapPin className="h-5 w-5 text-pink-500" />
               <h3 className="font-medium">Địa chỉ giao hàng</h3>
             </div>
-            {state.shippingAddress ? (
+            {checkoutData.shippingAddress ? (
               <div className="text-sm ml-7">
-                <p className="font-medium">{state.shippingAddress.fullName}</p>
-                <p className="text-muted-foreground">{state.shippingAddress.phone}</p>
+                <p className="font-medium">{checkoutData.shippingAddress.fullName}</p>
+                <p className="text-muted-foreground">{checkoutData.shippingAddress.phone}</p>
                 <p className="text-muted-foreground mt-1">
-                  {state.shippingAddress.address}, {state.shippingAddress.city}, {state.shippingAddress.province}
+                  {checkoutData.shippingAddress.address}, {checkoutData.shippingAddress.city},{" "}
+                  {checkoutData.shippingAddress.province}
                 </p>
-                {state.shippingAddress.postalCode && (
-                  <p className="text-muted-foreground">Mã bưu điện: {state.shippingAddress.postalCode}</p>
+                {checkoutData.shippingAddress.postalCode && (
+                  <p className="text-muted-foreground">Mã bưu điện: {checkoutData.shippingAddress.postalCode}</p>
                 )}
               </div>
             ) : (
@@ -103,12 +129,12 @@ export function OrderConfirmation() {
               <Truck className="h-5 w-5 text-pink-500" />
               <h3 className="font-medium">Phương thức vận chuyển</h3>
             </div>
-            {state.shippingMethod ? (
+            {checkoutData.shippingMethod ? (
               <div className="text-sm ml-7">
-                <p className="font-medium">{state.shippingMethod.name}</p>
-                <p className="text-muted-foreground">{state.shippingMethod.description}</p>
+                <p className="font-medium">{checkoutData.shippingMethod.name}</p>
+                <p className="text-muted-foreground">{checkoutData.shippingMethod.description}</p>
                 <p className="text-muted-foreground">
-                  Thời gian giao hàng dự kiến: {state.shippingMethod.estimatedDelivery}
+                  Thời gian giao hàng dự kiến: {checkoutData.shippingMethod.estimatedDelivery}
                 </p>
               </div>
             ) : (
@@ -121,7 +147,7 @@ export function OrderConfirmation() {
               <CreditCard className="h-5 w-5 text-pink-500" />
               <h3 className="font-medium">Phương thức thanh toán</h3>
             </div>
-            {state.paymentMethod ? (
+            {checkoutData.paymentMethod ? (
               <div className="text-sm ml-7">
                 <p className="font-medium">{getPaymentMethodName()}</p>
               </div>
@@ -130,10 +156,10 @@ export function OrderConfirmation() {
             )}
           </div>
 
-          {state.notes && (
+          {checkoutData.notes && (
             <div className="border rounded-lg p-4">
               <h3 className="font-medium mb-2">Ghi chú đơn hàng</h3>
-              <p className="text-sm text-muted-foreground">{state.notes}</p>
+              <p className="text-sm text-muted-foreground">{checkoutData.notes}</p>
             </div>
           )}
         </div>
@@ -144,20 +170,20 @@ export function OrderConfirmation() {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tạm tính</span>
-              <span>{formatCurrency(subTotal)}</span>
+              <span>{formatCurrency(checkoutData.subtotal)}</span>
             </div>
 
-            {state.shippingMethod && (
+            {checkoutData.shippingMethod && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Phí vận chuyển ({state.shippingMethod.name})</span>
-                <span>{formatCurrency(shippingCost)}</span>
+                <span className="text-muted-foreground">Phí vận chuyển ({checkoutData.shippingMethod.name})</span>
+                <span>{formatCurrency(checkoutData.shippingCost)}</span>
               </div>
             )}
 
-            {discount > 0 && (
+            {checkoutData.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Giảm giá</span>
-                <span className="text-green-600">-{formatCurrency(discount)}</span>
+                <span className="text-green-600">-{formatCurrency(checkoutData.discount)}</span>
               </div>
             )}
 
@@ -165,15 +191,15 @@ export function OrderConfirmation() {
 
             <div className="flex justify-between font-medium">
               <span>Tổng cộng</span>
-              <span className="text-lg text-pink-500">{formatCurrency(total)}</span>
+              <span className="text-lg text-pink-500">{formatCurrency(checkoutData.total)}</span>
             </div>
           </div>
 
           <Button
             className="w-full mt-6 bg-pink-500 hover:bg-pink-600"
-            disabled={!canPlaceOrder || isPlacingOrder || orderResult?.success}
             onClick={handlePlaceOrder}
-          >
+            >
+            {/* disabled={!canPlaceOrder || isPlacingOrder || orderResult?.success} */}
             {isPlacingOrder ? "Đang xử lý..." : "Đặt hàng"}
           </Button>
 
