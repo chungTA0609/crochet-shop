@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
-import { CheckCircle2, CreditCard, MapPin, Truck, AlertCircle } from "lucide-react"
+import { CheckCircle2, CreditCard, MapPin, Truck, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
+import axios from "@/lib/axios"
 
 // Define the interface for the checkout data
 interface CheckoutData {
@@ -25,7 +26,7 @@ interface CheckoutData {
 
 interface OrderConfirmationProps {
   checkoutData: CheckoutData
-  onCreateOrder: () => Promise<void>
+  onCreateOrder?: () => Promise<void> // Made optional since we'll handle it internally now
 }
 
 export function OrderConfirmation({ checkoutData, onCreateOrder }: OrderConfirmationProps) {
@@ -36,34 +37,68 @@ export function OrderConfirmation({ checkoutData, onCreateOrder }: OrderConfirma
     orderId?: string
     error?: string
   } | null>(null)
+  const [processingStep, setProcessingStep] = useState<string | null>(null)
 
   const handlePlaceOrder = async () => {
     setIsPlacingOrder(true)
+    setProcessingStep("checkout")
 
     try {
-      // Call the onCreateOrder function passed from the parent
-      await onCreateOrder()
+      // Step 1: Call the checkout API
+      const checkoutResponse = await axios.post("/api/checkout/process", checkoutData)
 
-      // Set success state (this might be redundant if onCreateOrder handles navigation)
+      if (!checkoutResponse.data.success) {
+        throw new Error(checkoutResponse.data.message || "Checkout process failed")
+      }
+
+      // Get the checkout ID from the response
+      const checkoutId = checkoutResponse.data.checkoutId
+
+      // Step 2: Create the order
+      setProcessingStep("order")
+      const orderResponse = await axios.post("/api/orders/create", {
+        checkoutId,
+        ...checkoutData,
+      })
+
+      if (!orderResponse.data.success) {
+        throw new Error(orderResponse.data.message || "Order creation failed")
+      }
+
+      // Set success state
       setOrderResult({
         success: true,
-        orderId: "generated-by-parent", // This will likely not be used since parent handles navigation
+        orderId: orderResponse.data.orderId,
       })
+
+      // Show success toast
+      toast({
+        title: "Đặt hàng thành công!",
+        description: `Đơn hàng #${orderResponse.data.orderId} của bạn đã được đặt thành công.`,
+      })
+
+      // Redirect to order success page
+      setTimeout(() => {
+        router.push(`/order-success?orderId=${orderResponse.data.orderId}`)
+      }, 2000)
     } catch (error) {
+      console.error("Error placing order:", error)
+
       // Set error state
       setOrderResult({
         success: false,
-        error: "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
+        error: error instanceof Error ? error.message : "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
       })
 
       // Show error toast
       toast({
         title: "Đặt hàng thất bại",
-        description: "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
+        description: error instanceof Error ? error.message : "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại sau.",
         variant: "destructive",
       })
     } finally {
       setIsPlacingOrder(false)
+      setProcessingStep(null)
     }
   }
 
@@ -94,7 +129,7 @@ export function OrderConfirmation({ checkoutData, onCreateOrder }: OrderConfirma
           <AlertTitle>{orderResult.success ? "Đặt hàng thành công!" : "Đặt hàng thất bại"}</AlertTitle>
           <AlertDescription>
             {orderResult.success
-              ? `Đơn hàng của bạn đã được đặt thành công. Cảm ơn bạn đã mua hàng!`
+              ? `Đơn hàng #${orderResult.orderId} của bạn đã được đặt thành công. Cảm ơn bạn đã mua hàng!`
               : orderResult.error}
           </AlertDescription>
         </Alert>
@@ -197,10 +232,17 @@ export function OrderConfirmation({ checkoutData, onCreateOrder }: OrderConfirma
 
           <Button
             className="w-full mt-6 bg-pink-500 hover:bg-pink-600"
+            disabled={!canPlaceOrder || isPlacingOrder || orderResult?.success}
             onClick={handlePlaceOrder}
-            >
-            {/* disabled={!canPlaceOrder || isPlacingOrder || orderResult?.success} */}
-            {isPlacingOrder ? "Đang xử lý..." : "Đặt hàng"}
+          >
+            {isPlacingOrder ? (
+              <div className="flex items-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {processingStep === "checkout" ? "Đang xử lý thanh toán..." : "Đang tạo đơn hàng..."}
+              </div>
+            ) : (
+              "Đặt hàng"
+            )}
           </Button>
 
           {!canPlaceOrder && !orderResult?.success && (

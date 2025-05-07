@@ -168,20 +168,20 @@ function CheckoutContent() {
       }
 
       // Make API call to calculate price summary
-      const response = await axios.post(endpoint, requestData)
+      // const response = await axios.post(endpoint, requestData)
 
-      if (response.data.success) {
-        return {
-          subtotal: response.data.subtotal || cartTotal,
-          shippingCost: response.data.shippingCost || state.shippingMethod?.price || 0,
-          discount: response.data.discount || 0,
-          total: response.data.total || cartTotal + (state.shippingMethod?.price || 0),
-        }
-      } else {
-        // If API call fails, calculate locally
-        console.warn("API calculation failed, using local calculation:", response.data.message)
-        return calculateLocalPriceSummary()
-      }
+      // if (response.data.success) {
+      //   return {
+      //     subtotal: response.data.subtotal || cartTotal,
+      //     shippingCost: response.data.shippingCost || state.shippingMethod?.price || 0,
+      //     discount: response.data.discount || 0,
+      //     total: response.data.total || cartTotal + (state.shippingMethod?.price || 0),
+      //   }
+      // } else {
+      //   // If API call fails, calculate locally
+      //   console.warn("API calculation failed, using local calculation:", response.data.message)
+      //   return calculateLocalPriceSummary()
+      // }
     } catch (error) {
       console.error("Error calculating price summary:", error)
       // If API call fails, calculate locally
@@ -255,16 +255,16 @@ function CheckoutContent() {
 
     try {
       // Calculate price summary from API
-      const priceSummary = await calculatePriceSummary()
+      // const priceSummary = await calculatePriceSummary()
 
-      // Update checkout data with calculated values
-      setCheckoutData((prev) => ({
-        ...prev,
-        subtotal: priceSummary.subtotal,
-        shippingCost: priceSummary.shippingCost,
-        discount: priceSummary.discount,
-        total: priceSummary.total,
-      }))
+      // // Update checkout data with calculated values
+      // setCheckoutData((prev) => ({
+      //   ...prev,
+      //   subtotal: priceSummary.subtotal,
+      //   shippingCost: priceSummary.shippingCost,
+      //   discount: priceSummary.discount,
+      //   total: priceSummary.total,
+      // }))
 
       // Move to next step
       setStep(state.step + 1)

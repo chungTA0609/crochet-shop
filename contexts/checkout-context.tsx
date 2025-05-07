@@ -5,7 +5,7 @@ import { useCart } from "@/contexts/cart-context"
 
 // Types
 export type ShippingMethod = {
-  id: string
+  id: number
   name: string
   description: string
   price: number

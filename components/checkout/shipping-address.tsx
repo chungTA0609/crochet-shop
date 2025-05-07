@@ -78,7 +78,7 @@ export function ShippingAddress() {
     }
 
     fetchAddresses()
-  }, [state.shippingAddress, setShippingAddress])
+  }, [])
 
   const handleAddressChange = (addressId: string) => {
     const selectedAddress = addresses.find((addr) => addr.id === addressId) || null
