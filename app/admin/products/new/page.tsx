@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { ArrowLeft, Save, Plus, X, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, Plus, X, Loader2, Star } from "lucide-react"
 import api from "@/lib/axios"
 
 interface Category {
@@ -30,6 +30,7 @@ export default function NewProductPage() {
         price: 0,
         stockQuantity: 0,
         image: "",
+        images: [] as { url: string; main: boolean }[],
         category: "",
         description: "",
         longDescription: "",
@@ -41,6 +42,80 @@ export default function NewProductPage() {
     const [newColor, setNewColor] = useState({ name: "", hex: "#ec4899" })
     const [newSize, setNewSize] = useState("")
 
+    const GITHUB_REPO = "chungTA0609/chart-store-image"; // Replace with your GitHub repo
+    const BRANCH = "main"; // Replace with your branch name
+
+    const uploadToGitHub = async (file: File) => {
+        const fileName = `${Date.now()}-${file.name}`;
+        const filePath = `uploads/${fileName}`; // Path in the GitHub repo
+
+        const reader = new FileReader();
+        return new Promise<string>((resolve, reject) => {
+            reader.onload = async (e) => {
+                if (!e.target?.result) {
+                    reject("Failed to read file");
+                    return;
+                }
+
+                const content = btoa(e.target.result as string); // Convert file to Base64
+                try {
+                    const response = await api.put(
+                        `/repos/${GITHUB_REPO}/contents/${filePath}`,
+                        {
+                            message: `Upload ${fileName}`,
+                            content,
+                            branch: BRANCH,
+                        },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${process.env.NEXT_PUBLIC_GITHUB_TOKEN}`, // Use environment variable for the token
+                            },
+                        }
+                    );
+
+                    if (response.status !== 201) {
+                        throw new Error(`GitHub API error: ${response.statusText}`);
+                    }
+
+                    resolve(response.data.content.download_url); // Return the file URL
+                } catch (error) {
+                    console.error("Error uploading to GitHub:", error);
+                    reject(error);
+                }
+            };
+
+            reader.readAsBinaryString(file); // Read file as binary string
+        });
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+
+        const fileArray = Array.from(e.target.files);
+        const uploadedImageUrls: { url: string; main: boolean }[] = [];
+
+        for (const [index, file] of fileArray.entries()) {
+            try {
+                const url = await uploadToGitHub(file);
+                uploadedImageUrls.push({
+                    url,
+                    main: index === 0 && formData.images.length === 0, // Set the first image as main
+                });
+            } catch (error) {
+                toast({
+                    title: "Upload failed",
+                    description: `Failed to upload ${file.name}. Please try again.`,
+                    variant: "destructive",
+                });
+            }
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            images: [...prev.images, ...uploadedImageUrls],
+            image: prev.images.length === 0 && uploadedImageUrls.length > 0 ? uploadedImageUrls[0].url : prev.image,
+        }));
+    };
     // Fetch categories
     useEffect(() => {
         const fetchCategories = async () => {
@@ -161,6 +236,54 @@ export default function NewProductPage() {
         }))
     }
 
+    // Remove image
+    const handleRemoveImage = (index: number) => {
+        setFormData(prev => {
+            const newImages = [...prev.images];
+            const removedImage = newImages.splice(index, 1)[0];
+
+            // If removing the main image, set the first remaining image as main
+            if (removedImage.main && newImages.length > 0) {
+                newImages[0].main = true;
+                return {
+                    ...prev,
+                    image: newImages[0].url,
+                    images: newImages
+                };
+            }
+
+            // If removing the last image, clear the main image
+            if (newImages.length === 0) {
+                return {
+                    ...prev,
+                    image: "",
+                    images: []
+                };
+            }
+
+            return {
+                ...prev,
+                images: newImages
+            };
+        });
+    };
+
+    // Set main image
+    const handleSetMainImage = (index: number) => {
+        setFormData(prev => {
+            const newImages = [...prev.images].map((img, i) => ({
+                ...img,
+                main: i === index
+            }));
+
+            return {
+                ...prev,
+                image: newImages[index].url,
+                images: newImages
+            };
+        });
+    };
+
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -190,7 +313,7 @@ export default function NewProductPage() {
         try {
             // Transform form data to match API format
             console.log(formData.colors);
-            
+
             const productData = {
                 name: formData.name,
                 description: formData.description,
@@ -324,14 +447,43 @@ export default function NewProductPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="image">Hình ảnh chính</Label>
-                                <Input id="image" name="image" value={formData.image} onChange={handleInputChange} />
-                                {formData.image && (
-                                    <div className="relative w-20 h-20 mt-2 border rounded-md overflow-hidden">
-                                        <Image src={formData.image || "/placeholder.svg"} alt="Product" fill className="object-cover" />
+                                <Input
+                                    id="image"
+                                    name="image"
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                />
+                                {formData.images && formData.images.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.images.map((img, index) => (
+                                            <div
+                                                key={index}
+                                                className={`relative w-20 h-20 border rounded-md overflow-hidden ${index === 0 ? 'ring-2 ring-primary' : ''}`}
+                                            >
+                                                <Image src={img.url} alt={`Product ${index}`} fill className="object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(index)}
+                                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-bl-md p-1"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                                {index !== 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSetMainImage(index)}
+                                                        className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-tl-md p-1"
+                                                    >
+                                                        <Star className="h-3 w-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="description">Mô tả ngắn</Label>
                                 <Textarea
