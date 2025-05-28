@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { z } from "zod"
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginContent() {
     const { login, isLoading } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const searchParams = useSearchParams()
@@ -157,5 +157,35 @@ export default function LoginPage() {
                 </p>
             </div>
         </div>
+    )
+}
+
+function LoginLoadingFallback() {
+    return (
+        <div className="max-w-md w-full mx-auto p-6 bg-white rounded-lg shadow-md">
+            <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold text-gray-900">Đăng nhập</h1>
+                <p className="text-gray-600 mt-2">Đang tải...</p>
+            </div>
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+        </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<LoginLoadingFallback />}>
+            <LoginContent />
+        </Suspense>
     )
 }

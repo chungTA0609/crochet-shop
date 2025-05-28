@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useOrder, type Order, type OrderStatus } from "@/contexts/order-context"
@@ -24,7 +24,7 @@ import { Search, MoreHorizontal, Eye, FileText, AlertTriangle } from "lucide-rea
 import { CancelOrderDialog } from "@/components/admin/cancel-order-dialog"
 import { UpdateOrderStatusDialog } from "@/components/admin/update-order-status-dialog"
 
-export default function OrdersPage() {
+function OrdersContent() {
     const searchParams = useSearchParams()
     const { orders, generateInvoice } = useOrder()
     const { updateOrderStatus, cancelOrder } = useAdmin()
@@ -284,5 +284,32 @@ export default function OrdersPage() {
                 </>
             )}
         </div>
+    )
+}
+
+export default function OrdersPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="bg-white border rounded-lg p-6">
+                    <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-64 bg-gray-200 rounded animate-pulse mb-6"></div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div className="h-10 w-64 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-10 w-80 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        }>
+            <OrdersContent />
+        </Suspense>
     )
 }
