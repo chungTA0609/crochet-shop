@@ -30,7 +30,7 @@ function LoginContent() {
 
     // Initialize form
     const form = useForm<LoginFormValues>({
-        resolver: zodResolver(loginSchema),
+        resolver: zodResolver(loginSchema) as any,
         defaultValues: {
             email: "",
             password: "",
@@ -51,9 +51,9 @@ function LoginContent() {
             </div>
 
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
                     <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="email"
                         render={({ field }) => (
                             <FormItem>
@@ -73,7 +73,7 @@ function LoginContent() {
                     />
 
                     <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="password"
                         render={({ field }) => (
                             <FormItem>
@@ -107,7 +107,7 @@ function LoginContent() {
 
                     <div className="flex items-center justify-between">
                         <FormField
-                            control={form.control}
+                            control={form.control as any}
                             name="rememberMe"
                             render={({ field }) => (
                                 <div className="flex items-center space-x-2">

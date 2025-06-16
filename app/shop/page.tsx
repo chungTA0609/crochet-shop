@@ -58,29 +58,29 @@ export default function ShopPage() {
       setProducts(response.data.content || [])
       setTotalPages(response.data.totalPages)
       setLoading(false)
-    } catch (err) {
+    } catch (err : any) {
       setError(err.response?.data?.message || "Failed to fetch products")
       setLoading(false)
     }
   }
 
   // Handle page change
-  const handlePageChange = (pageNumber) => {
+  const handlePageChange = (pageNumber: number) => {
     setFilters((prev) => ({ ...prev, page: pageNumber }))
     // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   // Handle search input
-  const handleSearch = (e) => {
+  const handleSearch = (e: any) => {
     if (e.key === "Enter") {
       setFilters((prev) => ({ ...prev, keyword: e.target.value, page: 1 }))
     }
   }
 
   // Handle category filter
-  const handleCategoryChange = (categoryId, checked) => {
-    setFilters((prev) => ({
+  const handleCategoryChange = (categoryId: number, checked: boolean) => {
+    setFilters((prev: any) => ({
       ...prev,
       categoryId: checked ? categoryId : null,
       page: 1,
@@ -88,8 +88,8 @@ export default function ShopPage() {
   }
 
   // Handle price range filter
-  const handlePriceChange = (values) => {
-    setFilters((prev) => ({
+  const handlePriceChange = (values: number[]) => {
+    setFilters((prev: any) => ({
       ...prev,
       minPrice: values[0],
       maxPrice: values[1],
@@ -98,7 +98,7 @@ export default function ShopPage() {
   }
 
   // Handle sort change
-  const handleSortChange = (e) => {
+  const handleSortChange = (e: any) => {
     const value = e.target.value
     let sortBy, sortDirection
 
@@ -167,7 +167,7 @@ export default function ShopPage() {
                           <Checkbox
                             id={`category-${category.id}`}
                             checked={filters.categoryId === category.id}
-                            onCheckedChange={(checked) => handleCategoryChange(category.id, checked)}
+                            onCheckedChange={(checked: boolean) => handleCategoryChange(category.id, checked ?? false)}
                           />
                           <Label htmlFor={`category-${category.id}`} className="text-sm">
                             {category.name}
@@ -269,7 +269,7 @@ export default function ShopPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product) => (
+                  {products.map((product: any) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>

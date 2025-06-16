@@ -243,7 +243,7 @@ export default function OrderDetailPage() {
                     <h1 className="text-2xl font-bold">Chi tiết đơn hàng #{order.orderNumber}</h1>
                 </div>
                 <div className="flex space-x-2">
-                    <Button variant="outline" onClick={() => generateInvoice(order)}>
+                    <Button variant="outline" onClick={() => generateInvoice(order as any)}>
                         <FileText className="h-4 w-4 mr-2" />
                         Tải hóa đơn
                     </Button>

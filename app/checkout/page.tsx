@@ -88,7 +88,7 @@ function CheckoutContent() {
   }, [cartItems.length, router])
 
   // Function to calculate price summary from API based on current step
-  const calculatePriceSummary = async (): Promise<PriceSummary> => {
+  const calculatePriceSummary = async (): Promise<PriceSummary | undefined> => {
     setIsCalculating(true)
     try {
       let endpoint = ""

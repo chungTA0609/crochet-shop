@@ -62,7 +62,7 @@ export default function EditUserPage() {
 
         if (name.startsWith("address.")) {
             const addressField = name.split(".")[1]
-            setFormData((prev) => ({
+            setFormData((prev: any) => ({
                 ...prev,
                 address: {
                     ...prev.address,

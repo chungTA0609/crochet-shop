@@ -19,7 +19,7 @@ import Navbar from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { RoleBadge } from "@/components/user/role-badge"
 import { PermissionsList } from "@/components/user/permissions-list"
-import { type UserProfile, getRoleDescription } from "@/types/user"
+import { type UserProfile, UserRole, getRoleDescription } from "@/types/user"
 import { ProtectedRoute } from "@/components/protected-route"
 
 export default function ProfilePage() {
@@ -30,27 +30,17 @@ export default function ProfilePage() {
 
     // Simulate fetching user profile data
     useEffect(() => {
+
         if (user) {
             // In a real app, you would fetch this from an API
-            setProfile({
+            const profile: UserProfile = {
                 ...user,
-                phone: "0987654321",
-                address: "123 Đường Lê Lợi, Quận 1, TP.HCM",
-                createdAt: "2023-01-15",
-                lastLogin: "2023-04-28",
-                isVerified: true,
-                bio: "Tôi là một người yêu thích đồ handmade và thủ công mỹ nghệ.",
-                website: "example.com",
-                socialLinks: {
-                    facebook: "facebook.com/username",
-                    instagram: "instagram.com/username",
-                },
-                preferences: {
-                    newsletter: true,
-                    marketing: false,
-                    notifications: true,
-                },
-                permissions: ["view_products", "edit_profile", "place_orders"],
+                firstName: user.name.split(' ')[0],
+                lastName: user.name.split(' ').slice(1).join(' '),
+                roles: user?.roles as UserRole[],
+            }
+            setProfile({
+                ...profile,
             })
         }
         console.log(user);
@@ -371,10 +361,15 @@ export default function ProfilePage() {
                                                 <Switch
                                                     id="notifications"
                                                     checked={profile.preferences?.notifications || false}
-                                                    onCheckedChange={(checked) =>
+                                                    onCheckedChange={(checked: boolean) =>
                                                         setProfile({
                                                             ...profile,
-                                                            preferences: { ...profile.preferences, notifications: checked },
+                                                            preferences: {
+                                                                ...profile.preferences,
+                                                                notifications: checked ?? false,
+                                                                newsletter: profile.preferences?.newsletter ?? false,
+                                                                marketing: profile.preferences?.marketing ?? false
+                                                            },
                                                         })
                                                     }
                                                 />
@@ -391,7 +386,12 @@ export default function ProfilePage() {
                                                     onCheckedChange={(checked) =>
                                                         setProfile({
                                                             ...profile,
-                                                            preferences: { ...profile.preferences, newsletter: checked },
+                                                            preferences: {
+                                                                ...profile.preferences,
+                                                                notifications: checked ?? false,
+                                                                newsletter: profile.preferences?.newsletter ?? false,
+                                                                marketing: profile.preferences?.marketing ?? false
+                                                            },
                                                         })
                                                     }
                                                 />
@@ -408,7 +408,12 @@ export default function ProfilePage() {
                                                     onCheckedChange={(checked) =>
                                                         setProfile({
                                                             ...profile,
-                                                            preferences: { ...profile.preferences, marketing: checked },
+                                                            preferences: {
+                                                                ...profile.preferences,
+                                                                notifications: checked ?? false,
+                                                                newsletter: profile.preferences?.newsletter ?? false,
+                                                                marketing: profile.preferences?.marketing ?? false
+                                                            },
                                                         })
                                                     }
                                                 />

@@ -104,11 +104,11 @@ export default function EditProductPage() {
                 if (productData) {
                     // Convert specifications and dimensions from array to object format
                     const specifications = Array.isArray(productData.specifications)
-                        ? Object.fromEntries(productData.specifications.map((spec) => [spec.key, spec.value]))
+                        ? Object.fromEntries(productData.specifications.map((spec : any) => [spec.key, spec.value]))
                         : productData.specifications || {}
 
                     const dimensions = Array.isArray(productData.dimensions)
-                        ? Object.fromEntries(productData.dimensions.map((dim) => [dim.key, dim.value]))
+                        ? Object.fromEntries(productData.dimensions.map((dim: any) => [dim.key, dim.value]))
                         : productData.dimensions || {}
 
                     setProduct(productData)
@@ -323,11 +323,11 @@ export default function EditProductPage() {
                     hex: color.hex,
                 })),
                 sizes: formData.sizes,
-                specifications: Object.entries(formData.specifications).map(([key, value]) => ({
+                specifications: Object.entries(formData.specifications || {}).map(([key, value]) => ({
                     key,
                     value,
                 })),
-                dimensions: Object.entries(formData.dimensions).map(([key, value]) => ({
+                dimensions: Object.entries(formData.dimensions || {}).map(([key, value]) => ({
                     key,
                     value,
                 })),

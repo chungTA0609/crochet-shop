@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
         if (!isLoading) {
             if (!isAuthenticated) {
                 router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`)
-            } else if (adminOnly && user?.role !== "admin") {
+            } else if (adminOnly &&  user?.roles.includes("admin")) {
                 router.push("/")
             }
         }
@@ -34,7 +34,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
         )
     }
 
-    if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
+    if (!isAuthenticated || (adminOnly && user?.roles.includes("admin"))) {
         return null
     }
 

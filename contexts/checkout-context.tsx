@@ -5,11 +5,12 @@ import { useCart } from "@/contexts/cart-context"
 
 // Types
 export type ShippingMethod = {
-  id: number
+  id: string
   name: string
   description: string
   price: number
   estimatedDelivery: string
+  isDefault: boolean
 }
 
 export type PaymentMethod = "credit-card" | "paypal" | "cod"
@@ -23,7 +24,7 @@ export type Address = {
   city: string
   province: string
   postalCode: string
-  isDefault?: boolean
+  isDefault: boolean
 }
 
 export type PromoCode = {
@@ -32,6 +33,7 @@ export type PromoCode = {
   type: "percentage" | "fixed"
   minimumOrder?: number
   expiryDate?: Date
+  maxDiscount?: number
 }
 
 export type CheckoutState = {
@@ -133,6 +135,7 @@ const shippingMethods: ShippingMethod[] = [
     description: "Giao hàng trong 3-5 ngày làm việc",
     price: 30000,
     estimatedDelivery: "3-5 ngày",
+    isDefault: true,
   },
   {
     id: "express",
@@ -140,6 +143,7 @@ const shippingMethods: ShippingMethod[] = [
     description: "Giao hàng trong 1-2 ngày làm việc",
     price: 60000,
     estimatedDelivery: "1-2 ngày",
+    isDefault: false,
   },
   {
     id: "same-day",
@@ -147,6 +151,7 @@ const shippingMethods: ShippingMethod[] = [
     description: "Giao hàng trong ngày (áp dụng cho đơn hàng trước 12h)",
     price: 100000,
     estimatedDelivery: "Trong ngày",
+    isDefault: false,
   },
   {
     id: "pickup",
@@ -154,6 +159,7 @@ const shippingMethods: ShippingMethod[] = [
     description: "Nhận hàng tại cửa hàng (miễn phí)",
     price: 0,
     estimatedDelivery: "Có thể nhận ngay",
+    isDefault: false,
   },
 ]
 
@@ -234,7 +240,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
 
   // Add new address
   const addNewAddress = (address: Address) => {
-    const newAddress = {
+    const newAddress: Address = {
       ...address,
       id: `addr${savedAddresses.length + 1}`,
     }

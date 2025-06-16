@@ -33,9 +33,9 @@ export function ShippingAddress() {
       setIsLoading(true)
       try {
         const response = await axios.get("/api/addresses")
-        
+
         if (response.data.data && Array.isArray(response.data.data)) {
-          const adrArray = response.data.data.map(element => {
+          const adrArray = response.data.data.map((element: any) => {
             return {
               id: element.id.toString(),
               fullName: element.fullName,
@@ -48,7 +48,7 @@ export function ShippingAddress() {
               isDefault: element.default,
             }
           });
-          
+
           setAddresses(adrArray)
 
           // If there's a default address and no address is selected, select it

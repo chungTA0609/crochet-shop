@@ -66,7 +66,7 @@ function OrdersContent() {
             if (success) {
                 toast({
                     title: "Cập nhật trạng thái thành công",
-                    description: `Đơn hàng #${selectedOrder.orderNumber} đã được cập nhật thành ${getStatusText(newStatus)}.`,
+                    description: `Đơn hàng #${selectedOrder.orderNumber} đã được cập nhật thành ${getStatusText(newStatus as any)}.`,
                 })
             } else {
                 toast({

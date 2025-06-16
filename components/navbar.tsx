@@ -159,7 +159,7 @@ export default function Navbar() {
                     <span>Đơn hàng</span>
                   </Link>
                 </DropdownMenuItem>
-                {user?.role === "admin" && (
+                {user?.roles.includes("admin") && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin" className="cursor-pointer w-full">
                       <Settings className="mr-2 h-4 w-4" />

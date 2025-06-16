@@ -67,13 +67,13 @@ export function ShippingMethodSelector() {
   // Icons for shipping methods
   const getMethodIcon = (method: ShippingMethod) => {
     switch (method.id) {
-      case 1:
+      case "1":
         return <Truck className="h-5 w-5 text-blue-500" />
-      case 2:
+      case "2":
         return <Truck className="h-5 w-5 text-green-500" />
-      case 3:
+      case "3":
         return <Clock className="h-5 w-5 text-orange-500" />
-      case 4:
+      case "4":
         return <Package className="h-5 w-5 text-purple-500" />
       default:
         return <Truck className="h-5 w-5 text-gray-500" />
@@ -90,7 +90,7 @@ export function ShippingMethodSelector() {
         </div>
       ) : shippingMethods.length > 0 ? (
         <RadioGroup
-          value={state.shippingMethod?.id || 0}
+          value={state.shippingMethod?.id || ""}
           onValueChange={handleShippingMethodChange}
           className="space-y-3"
         >

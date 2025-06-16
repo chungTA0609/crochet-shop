@@ -86,6 +86,7 @@ const sampleOrders: Order[] = [
             city: "Quận 1",
             province: "TP Hồ Chí Minh",
             postalCode: "700000",
+            isDefault: false,
         },
         shippingMethod: {
             id: "standard",
@@ -93,6 +94,7 @@ const sampleOrders: Order[] = [
             description: "Giao hàng trong 3-5 ngày làm việc",
             price: 30000,
             estimatedDelivery: "3-5 ngày",
+            isDefault: true,
         },
         paymentMethod: "cod",
         subtotal: 850000,
@@ -134,6 +136,7 @@ const sampleOrders: Order[] = [
             city: "Quận 1",
             province: "TP Hồ Chí Minh",
             postalCode: "700000",
+            isDefault: false,
         },
         shippingMethod: {
             id: "express",
@@ -141,6 +144,7 @@ const sampleOrders: Order[] = [
             description: "Giao hàng trong 1-2 ngày làm việc",
             price: 60000,
             estimatedDelivery: "1-2 ngày",
+            isDefault: false,
         },
         paymentMethod: "credit-card",
         subtotal: 250000,
@@ -191,6 +195,7 @@ const sampleOrders: Order[] = [
             city: "Quận 3",
             province: "TP Hồ Chí Minh",
             postalCode: "700000",
+            isDefault: false,
         },
         shippingMethod: {
             id: "standard",
@@ -198,6 +203,7 @@ const sampleOrders: Order[] = [
             description: "Giao hàng trong 3-5 ngày làm việc",
             price: 30000,
             estimatedDelivery: "3-5 ngày",
+            isDefault: false,
         },
         paymentMethod: "paypal",
         subtotal: 650000,

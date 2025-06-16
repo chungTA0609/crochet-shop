@@ -103,7 +103,7 @@ export default function ProductsPage() {
                 await api.delete(`/api/products/${productToDelete}`)
 
                 // Remove from local state
-                setProducts(products.filter((product) => product.id !== productToDelete))
+                setProducts(products.filter((product: any) => product.id !== productToDelete))
 
                 // Refresh the current page if it's now empty (except for the first page)
                 if (products.length === 1 && currentPage > 1) {
@@ -216,7 +216,7 @@ export default function ProductsPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    products.map((product) => (
+                                    products.map((product: any) => (
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
