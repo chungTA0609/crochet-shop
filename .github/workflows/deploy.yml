@@ -1,0 +1,174 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # Job 1: Install dependencies and run tests
+  test:
+    runs-on: ubuntu-latest
+    name: Test and Build Check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type checking
+        run: npm run type-check
+        continue-on-error: false
+
+      # - name: Run linting
+      #   run: npm run lint
+      #   continue-on-error: false
+
+      - name: Build project
+        run: npm run build
+
+      - name: Cache build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            .next
+            node_modules
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+  # Job 2: Deploy to Vercel Preview (for PRs)
+  deploy-preview:
+    runs-on: ubuntu-latest
+    name: Deploy Preview
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with Preview URL
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deployment ready!**
+              
+              ✅ Preview URL: ${{ steps.deploy.outputs.preview_url }}
+              
+              📝 Commit: ${context.sha.substring(0, 7)}
+              🌿 Branch: ${context.ref.replace('refs/heads/', '')}
+              
+              This preview will be automatically updated when you push new commits to this PR.`
+            })
+
+  # Job 3: Deploy to Production (for main branch)
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "production_url=$url" >> $GITHUB_OUTPUT
+
+      # - name: Create deployment status
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       github.rest.repos.createDeploymentStatus({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         deployment_id: context.payload.deployment?.id || 0,
+      #         state: 'success',
+      #         environment_url: '${{ steps.deploy.outputs.production_url }}',
+      #         description: 'Deployment to production successful'
+      #       })
+
+  # Job 4: Lighthouse Performance Check (optional)
+  # lighthouse:
+  #   runs-on: ubuntu-latest
+  #   name: Lighthouse Performance Check
+  #   needs: deploy-production
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22'
+
+  #     - name: Install Lighthouse CI
+  #       run: npm install -g @lhci/cli@0.12.x
+
+  #     - name: Run Lighthouse CI
+  #       run: |
+  #         lhci autorun
+  #       env:
+  #         LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+  #         LHCI_BUILD_CONTEXT__COMMIT_TIME: ${{ github.event.head_commit.timestamp }}

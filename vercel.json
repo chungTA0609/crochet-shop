@@ -1,0 +1,23 @@
+{
+    "version": 2,
+    "name": "crochet-shop",
+    "framework": "nextjs",
+    "installCommand": "npm ci",
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev",
+    "outputDirectory": ".next",
+    "functions": {
+      "app/api/**/*.ts": {
+        "runtime": "vercel-node@1.6.0"
+      }
+    },
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "build": {
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+  
